@@ -1,5 +1,6 @@
 package hello.jdbc.service;
 
+import hello.jdbc.connection.ConnectionConst;
 import hello.jdbc.domain.Member;
 import hello.jdbc.repository.MemberRepositoryV1;
 import org.assertj.core.api.Assertions;
@@ -13,20 +14,22 @@ import java.sql.SQLException;
 
 import static hello.jdbc.connection.ConnectionConst.*;
 import static org.assertj.core.api.Assertions.*;
-import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * 기본 동작, 트랜잭션이 없어서 문제 발생
+ */
 class MemberServiceV1Test {
 
     public static final String MEMBER_A = "memberA";
     public static final String MEMBER_B = "memberB";
     public static final String MEMBER_EX = "ex";
+
     private MemberRepositoryV1 memberRepository;
     private MemberServiceV1 memberService;
 
     @BeforeEach
     void before() {
-        DriverManagerDataSource dataSource = new DriverManagerDataSource(URL,
-                USERNAME, PASSWORD);
+        DriverManagerDataSource dataSource = new DriverManagerDataSource(URL, USERNAME, PASSWORD);
         memberRepository = new MemberRepositoryV1(dataSource);
         memberService = new MemberServiceV1(memberRepository);
     }
@@ -46,13 +49,15 @@ class MemberServiceV1Test {
         Member memberB = new Member(MEMBER_B, 10000);
         memberRepository.save(memberA);
         memberRepository.save(memberB);
+
         //when
-        memberService.accountTransfer(memberA.getMemberId(),
-                memberB.getMemberId(), 2000); //then
-        Member findMemberA = memberRepository.findById(memberA.getMemberId());
-        Member findMemberB = memberRepository.findById(memberB.getMemberId());
-        assertThat(findMemberA.getMoney()).isEqualTo(8000);
-        assertThat(findMemberB.getMoney()).isEqualTo(12000);
+        memberService.accountTransfer(memberA.getMemberId(), memberB.getMemberId(), 2000);
+
+        //then
+        Member fromMember = memberRepository.findById(memberA.getMemberId());
+        Member toMember = memberRepository.findById(memberB.getMemberId());
+        assertThat(fromMember.getMoney()).isEqualTo(8000);
+        assertThat(toMember.getMoney()).isEqualTo(12000);
     }
 
     @Test
@@ -63,17 +68,16 @@ class MemberServiceV1Test {
         Member memberEx = new Member(MEMBER_EX, 10000);
         memberRepository.save(memberA);
         memberRepository.save(memberEx);
-        //when
-        assertThatThrownBy(() ->
-                memberService.accountTransfer(memberA.getMemberId(), memberEx.getMemberId(),
-                        2000))
-                .isInstanceOf(IllegalStateException.class);
-        //then
-        Member findMemberA = memberRepository.findById(memberA.getMemberId());
-        Member findMemberEx =
-                memberRepository.findById(memberEx.getMemberId());
 
-        assertThat(findMemberA.getMoney()).isEqualTo(8000);
-        assertThat(findMemberEx.getMoney()).isEqualTo(10000);
+        //when
+        assertThatThrownBy(() -> memberService.accountTransfer(memberA.getMemberId(), memberEx.getMemberId(), 2000))
+                .isInstanceOf(IllegalStateException.class);
+
+        //then
+        Member fromMember = memberRepository.findById(memberA.getMemberId());
+        Member toMember = memberRepository.findById(memberEx.getMemberId());
+
+        assertThat(fromMember.getMoney()).isEqualTo(8000);
+        assertThat(toMember.getMoney()).isEqualTo(10000);
     }
 }
