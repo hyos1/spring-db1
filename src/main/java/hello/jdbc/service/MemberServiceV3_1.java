@@ -50,15 +50,4 @@ public class MemberServiceV3_1 {
         }
     }
 
-    private static void release(Connection con) {
-        if (con != null) {
-            try {
-                //커넥션 풀 사용시 이 커넥션은 계속 false이므로 true 해줘야한다.
-                con.setAutoCommit(true);
-                con.close();
-            } catch (Exception e) {
-                log.info("error", e);
-            }
-        }
-    }
 }
